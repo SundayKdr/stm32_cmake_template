@@ -1,30 +1,64 @@
-macro(utils_target_include_dir_recurse TARGET_NAME TARGET_DIR)
-    file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS
-            ${TARGET_DIR}/*.h*
-    )
-    set(INCLUDE_DIRS "")
-    foreach(HEADER ${ALL_HEADERS})
-        get_filename_component(DIR ${HEADER} PATH)
-        list(APPEND INCLUDE_DIRS ${DIR})
-    endforeach ()
-    list(REMOVE_DUPLICATES INCLUDE_DIRS)
-    target_include_directories(${TARGET_NAME}
-            PUBLIC
-            ${INCLUDE_DIRS}
-    )
-    unset(INCLUDE_DIRS)
-endmacro()
 
-macro(utils_target_include_recurse TARGET_NAME TARGET_DIR)
-    utils_target_include_dir_recurse(${TARGET_NAME} ${TARGET_DIR})
-    file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-            ${TARGET_DIR}/*.*
-    )
-    target_sources(${TARGET_NAME}
+function(utils_add_to_sources target)
+    set(source_list ${SOURCES_${target}})
+    foreach(folder_name ${ARGN})
+        file(GLOB_RECURSE sources
+            ${CMAKE_CURRENT_SOURCE_DIR}/${folder_name}/*.h*
+            ${CMAKE_CURRENT_SOURCE_DIR}/${folder_name}/*.c*
+        )
+        foreach(file ${sources})
+            list(APPEND source_list ${file})
+        endforeach ()
+    endforeach()
+    SET(SOURCES_${target} ${source_list} CACHE INTERNAL "source_list")
+endfunction()
+
+function(utils_target_include_dir_recurse target)
+    foreach (folder_name ${ARGN})
+        file(GLOB_RECURSE all_headers
+            ${CMAKE_CURRENT_SOURCE_DIR}/${folder_name}/*.h*
+        )
+        set(dirs "")
+        foreach(header ${all_headers})
+            get_filename_component(dir ${header} PATH)
+            list(APPEND dirs ${dir})
+        endforeach ()
+        list(REMOVE_DUPLICATES dirs)
+        target_include_directories(${target}
             PUBLIC
-            ${SOURCES}
-    )
-    endmacro()
+            ${dirs}
+        )
+    endforeach ()
+endfunction()
+
+function(utils_add_dls target)
+    foreach(folder_name ${ARGN})
+        file(GLOB_RECURSE dls CONFIGURE_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/${folder_name}/*.a
+        )
+        target_link_libraries(${target}
+            PUBLIC
+            ${dls}
+        )
+    endforeach()
+endfunction()
+
+function(utils_add_all_from_path target)
+    utils_add_to_sources(${ARGV})
+    utils_target_include_dir_recurse(${ARGV})
+    utils_add_dls(${ARGV})
+endfunction()
+
+function(exclude_folder_from_binary target)
+    foreach (folder_name ${ARGV})
+        foreach(tmp_path ${SOURCES_${target}})
+            string (FIND ${tmp_path} ${CMAKE_CURRENT_SOURCE_DIR}/${folder_name} found)
+            if (NOT ${found} EQUAL -1)
+                list (REMOVE_ITEM ${SOURCES_${target}} ${tmp_path})
+            endif ()
+        endforeach()
+    endforeach()
+endfunction()
 
 macro(utils_target_generate_hex TARGET_NAME)
     add_custom_command(

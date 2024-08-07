@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.16)
 
 include(FetchContent)
 
@@ -14,14 +13,13 @@ enable_testing()
 
 include(GoogleTest)
 
-file(GLOB_RECURSE test_sources
-        CONFIGURE_DEPENDS
-        tests/*.*
+file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS
+        ${PROJECT_SOURCE_DIR}/tests/*.*
 )
 
-add_library(TESTS SHARED ${test_sources})
+add_executable(${PROJECT_NAME}Test ${test_sources})
 
-target_link_libraries(TESTS
+target_link_libraries(${PROJECT_NAME}Test
         PUBLIC
         GTest::gtest_main
         GTest::gmock_main
@@ -31,4 +29,4 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-src/googlemock/include
 )
 
-gtest_discover_tests(TESTS)
+gtest_discover_tests(${PROJECT_NAME}Test)

@@ -1,1 +1,5 @@
 .idea
+/cmake-build-*
+!/tests
+!/third_party
+!/app
